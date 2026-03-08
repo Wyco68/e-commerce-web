@@ -15,6 +15,7 @@ class OrderSeeder extends Seeder
         foreach ($users as $user) {
             Order::create([
                 'user_id' => $user->id,
+                'date_time' => now(),
                 'total_price' => rand(50, 200),
                 'status' => 'completed',
             ]);
