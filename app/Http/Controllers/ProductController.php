@@ -8,10 +8,17 @@ use Illuminate\Http\Request;
 
 class ProductController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $products = Product::with('category')->get();
-        return view('products.index', compact('products'));
+        $categories = Category::all();
+
+        $query = Product::with('category');
+        if ($request->filled('category')) {
+            $query->where('category_id', $request->integer('category'));
+        }
+        $products = $query->get();
+
+        return view('products.index', compact('products', 'categories'));
     }
 
     public function show(Product $product)
