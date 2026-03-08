@@ -17,6 +17,7 @@ Route::get('/products/{product}', [ProductController::class, 'show'])->name('pro
 Route::middleware('auth')->group(function () {
     // Account
     Route::get('/account', [AccountController::class, 'show'])->name('account.show');
+    Route::patch('/account', [AccountController::class, 'update'])->name('account.update');
 
     // Cart (session-based)
     Route::get('/cart', [CartController::class, 'index'])->name('cart.index');

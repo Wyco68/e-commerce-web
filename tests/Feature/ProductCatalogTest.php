@@ -22,7 +22,7 @@ class ProductCatalogTest extends TestCase
         $response = $this->get('/');
 
         $response->assertStatus(200);
-        $response->assertSee('Welcome to Our Store');
+        $response->assertSee('Best Car Parts for Your Vehicle');
         $response->assertSee('Test Widget');
     }
 

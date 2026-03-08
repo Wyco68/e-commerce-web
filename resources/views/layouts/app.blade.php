@@ -32,6 +32,17 @@
                 {{ $slot ?? '' }}
                 @yield('content')
             </main>
+
+            <!-- Footer -->
+            <footer class="bg-gray-800 text-gray-400 text-sm py-6 mt-12">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <div class="flex space-x-6">
+                        <span>About</span>
+                        <span>Contact</span>
+                    </div>
+                    <p>&copy; {{ date('Y') }} {{ config('app.name', 'Car Parts Store') }}. All rights reserved.</p>
+                </div>
+            </footer>
         </div>
     </body>
 </html>
