@@ -11,25 +11,124 @@ A Laravel web application for browsing and ordering car parts and accessories. F
 - **Quantity discounts**: Automatic discounts when ordered quantity meets a product's minimum threshold
 - **Member pages**: Account info page, order history with item details
 
-## Setup
+## Prerequisites
+
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running
+
+## Setup (Docker with Laravel Sail)
+
+### 1. Clone and install PHP dependencies
 
 ```bash
-# Clone and install dependencies
 git clone <repo-url> && cd project
-composer install
-npm install && npm run build
-
-# Environment
-cp .env.example .env
-php artisan key:generate
-
-# Database (SQLite by default)
-touch database/database.sqlite
-php artisan migrate --seed
-
-# Run
-php artisan serve
+docker run --rm -v $(pwd):/var/www/html -w /var/www/html laravelsail/php85-composer:latest composer install
 ```
+
+> This uses a temporary Docker container to run `composer install` without needing PHP or Composer on your host machine.
+
+### 2. Configure environment
+
+```bash
+cp .env.example .env
+```
+
+Open `.env` and update the database settings to use MySQL via Sail:
+
+```dotenv
+DB_CONNECTION=mysql
+DB_HOST=mysql
+DB_PORT=3306
+DB_DATABASE=sail
+DB_USERNAME=laravel
+DB_PASSWORD=password
+```
+
+> **Note:** The `DB_HOST` must be `mysql` (the Docker service name), not `localhost` or `127.0.0.1`.
+
+### 3. Start the containers
+
+```bash
+./vendor/bin/sail up -d
+```
+
+This starts two containers:
+- **laravel.test** — the PHP application server (accessible at `http://localhost`)
+- **mysql** — a MySQL 8.4 database server
+
+Wait a few seconds for MySQL to finish initializing on first start.
+
+### 4. Generate app key, run migrations, and seed the database
+
+```bash
+./vendor/bin/sail artisan key:generate
+./vendor/bin/sail artisan migrate --seed
+```
+
+### 5. Install frontend dependencies and build assets
+
+```bash
+./vendor/bin/sail npm install
+./vendor/bin/sail npm run build
+```
+
+For development with hot reloading:
+
+```bash
+./vendor/bin/sail npm run dev
+```
+
+### 6. Visit the application
+
+Open `http://localhost` in your browser.
+
+## Common Sail Commands
+
+| Command | Description |
+|---|---|
+| `./vendor/bin/sail up -d` | Start containers in the background |
+| `./vendor/bin/sail down` | Stop containers |
+| `./vendor/bin/sail artisan migrate:fresh --seed` | Reset and re-seed the database |
+| `./vendor/bin/sail artisan tinker` | Open Laravel REPL |
+| `./vendor/bin/sail mysql` | Open a MySQL shell |
+| `./vendor/bin/sail npm run dev` | Start Vite dev server |
+| `./vendor/bin/sail test` | Run tests |
+
+## Troubleshooting
+
+### Access denied for MySQL user
+
+If you see `SQLSTATE[HY000] [1045] Access denied`, the MySQL volume was initialized with different credentials than your current `.env`. Fix by destroying the volume and restarting:
+
+```bash
+./vendor/bin/sail down -v
+./vendor/bin/sail up -d
+./vendor/bin/sail artisan migrate --seed
+```
+
+> **Warning:** `sail down -v` deletes all database data. The `-v` flag removes Docker volumes.
+
+### Port conflicts
+
+If port 80 or 3306 is already in use, set alternative ports in `.env`:
+
+```dotenv
+APP_PORT=8080
+FORWARD_DB_PORT=3307
+```
+
+Then restart with `./vendor/bin/sail up -d`.
+
+### Connecting to MySQL from a GUI tool
+
+Use these settings in your database client (e.g., TablePlus, DBeaver):
+
+| Setting  | Value                          |
+|----------|--------------------------------|
+| Host     | `127.0.0.1`                    |
+| Port     | `3306` (or your `FORWARD_DB_PORT`) |
+| Database | `sail`                         |
+| Username | `laravel`                      |
+| Password | `password`                     |
 
 ## Demo Credentials
 
