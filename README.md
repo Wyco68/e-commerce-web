@@ -1,59 +1,70 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Car Parts E-Commerce Store
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A Laravel web application for browsing and ordering car parts and accessories. Features product catalog, user registration, session-based cart, quantity-based discounts, and order history.
 
-## About Laravel
+## Features
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- **Public pages**: Home page with featured products, full product catalog with category names and prices
+- **Authentication**: Register (with phone number and address), login, logout via Laravel Breeze
+- **Shopping cart**: Session-based cart — add products, update quantities, remove items
+- **Order creation**: Confirm cart to create Order + OrderItem records with discount calculations
+- **Quantity discounts**: Automatic discounts when ordered quantity meets a product's minimum threshold
+- **Member pages**: Account info page, order history with item details
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Setup
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+```bash
+# Clone and install dependencies
+git clone <repo-url> && cd project
+composer install
+npm install && npm run build
 
-## Learning Laravel
+# Environment
+cp .env.example .env
+php artisan key:generate
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+# Database (SQLite by default)
+touch database/database.sqlite
+php artisan migrate --seed
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+# Run
+php artisan serve
+```
 
-## Laravel Sponsors
+## Demo Credentials
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+All seeded users use password: `password`
 
-### Premium Partners
+| Name   | Email               |
+|--------|---------------------|
+| Wyco   | wyco@example.com    |
+| Joe    | joe@example.com     |
+| Anakin | anakin@example.com  |
+| Saw    | saw@example.com     |
+| Shiro  | shiro@example.com   |
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+## Running Tests
 
-## Contributing
+```bash
+php artisan test
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## Key Routes
 
-## Code of Conduct
+| Method | URI              | Name            | Description                  |
+|--------|------------------|-----------------|------------------------------|
+| GET    | /                | home            | Home page with featured products |
+| GET    | /products        | products.index  | Browse all products          |
+| GET    | /products/{id}   | products.show   | Product detail page          |
+| GET    | /register        | register        | Registration form            |
+| GET    | /login           | login           | Login form                   |
+| GET    | /cart            | cart.index      | View cart (auth)             |
+| POST   | /cart/{product}  | cart.add        | Add product to cart (auth)   |
+| GET    | /orders/create   | orders.create   | Review order before confirm  |
+| POST   | /orders          | orders.store    | Place order (auth)           |
+| GET    | /orders          | orders.index    | Order history (auth)         |
+| GET    | /account         | account.show    | Member info (auth)           |
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## Discount System
 
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Discounts are per-product and quantity-based. If a product has a discount with `min_quantity = 5` and `percentage = 20`, ordering 5+ units applies 20% off that line item's subtotal. Discount data is stored in the `discounts` table.
