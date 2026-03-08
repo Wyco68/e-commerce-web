@@ -9,6 +9,8 @@ class Discount extends Model
 {
     use HasFactory;
 
+    public $timestamps = false;
+
     protected $fillable = [
         'product_id',
         'min_quantity',

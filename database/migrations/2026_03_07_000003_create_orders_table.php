@@ -12,7 +12,9 @@ class CreateOrdersTable extends Migration
             Schema::create('orders', function (Blueprint $table) {
                 $table->id();
                 $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
-                $table->timestamp('date_time');
+                $table->timestamp('date_time')->default(DB::raw('CURRENT_TIMESTAMP'));
+                $table->decimal('total_price', 10, 2);
+                $table->string('status');
             });
         }
     }
