@@ -8,4 +8,73 @@
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+
+    /* Black & White theme - remap all colors to grayscale */
+    --color-indigo-50: #f9fafb;
+    --color-indigo-100: #f3f4f6;
+    --color-indigo-200: #e5e7eb;
+    --color-indigo-300: #d1d5db;
+    --color-indigo-400: #9ca3af;
+    --color-indigo-500: #6b7280;
+    --color-indigo-600: #4b5563;
+    --color-indigo-700: #374151;
+    --color-indigo-800: #1f2937;
+    --color-indigo-900: #111827;
+    --color-indigo-950: #030712;
+
+    --color-green-50: #f9fafb;
+    --color-green-100: #f3f4f6;
+    --color-green-200: #e5e7eb;
+    --color-green-300: #d1d5db;
+    --color-green-400: #9ca3af;
+    --color-green-500: #6b7280;
+    --color-green-600: #4b5563;
+    --color-green-700: #374151;
+    --color-green-800: #1f2937;
+    --color-green-900: #111827;
+    --color-green-950: #030712;
+
+    --color-red-50: #f9fafb;
+    --color-red-100: #f3f4f6;
+    --color-red-200: #e5e7eb;
+    --color-red-300: #d1d5db;
+    --color-red-400: #9ca3af;
+    --color-red-500: #6b7280;
+    --color-red-600: #4b5563;
+    --color-red-700: #374151;
+    --color-red-800: #1f2937;
+    --color-red-900: #111827;
+    --color-red-950: #030712;
+
+    --color-yellow-50: #f9fafb;
+    --color-yellow-100: #f3f4f6;
+    --color-yellow-200: #e5e7eb;
+    --color-yellow-300: #d1d5db;
+    --color-yellow-400: #9ca3af;
+    --color-yellow-500: #6b7280;
+    --color-yellow-600: #4b5563;
+    --color-yellow-700: #374151;
+    --color-yellow-800: #1f2937;
+    --color-yellow-900: #111827;
+    --color-yellow-950: #030712;
+}
+
+/* Force light mode everywhere — disable dark mode */
+@media (prefers-color-scheme: dark) {
+    :root {
+        color-scheme: light;
+    }
+}
+
+.dark\:bg-gray-900,
+.dark\:bg-gray-800,
+.dark\:bg-gray-700 {
+    background-color: white !important;
+}
+
+.dark\:text-gray-100,
+.dark\:text-gray-200,
+.dark\:text-gray-300,
+.dark\:text-gray-400 {
+    color: black !important;
 }
