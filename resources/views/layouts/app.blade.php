@@ -5,7 +5,8 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>{{ config('app.name', 'Laravel') }}</title>
+        <title>CarPart</title>
+        <link rel="icon" type="image/x-icon" href="{{ asset('images/favicon.ico') }}">
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
@@ -15,7 +16,7 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="font-sans antialiased text-black">
-        <div class="min-h-screen bg-white">
+        <div class="min-h-screen bg-white flex flex-col">
             @include('layouts.navigation')
 
             <!-- Page Heading -->
@@ -28,7 +29,7 @@
             @endisset
 
             <!-- Page Content -->
-            <main>
+            <main class="flex-grow">
                 {{ $slot ?? '' }}
                 @yield('content')
             </main>
@@ -37,10 +38,10 @@
             <footer class="bg-gray-800 text-gray-400 text-sm py-6 mt-12">
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center gap-4">
                     <div class="flex space-x-6">
-                        <span>About</span>
-                        <span>Contact</span>
+                        <span>Contact us</span>
+                        <span>@Phone- 802271428</span>
                     </div>
-                    <p>&copy; {{ date('Y') }} {{ config('app.name', 'Car Parts Store') }}. All rights reserved.</p>
+                    <p>&copy; {{ date('Y') }} Car Parts Store</p>
                 </div>
             </footer>
         </div>
