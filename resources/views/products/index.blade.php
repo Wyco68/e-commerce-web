@@ -17,26 +17,32 @@
                     <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Categories</h4>
                     <div class="space-y-2">
                         <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                            <input type="radio" name="category_filter" value="" onchange="window.location='{{ route('products.index') }}'" {{ !request('category') ? 'checked' : '' }} class="text-indigo-600">
+                            <input type="radio" name="category_filter" value="" onchange="window.location='{{ route('products.index', array_filter(['min_price' => request('min_price'), 'max_price' => request('max_price')])) }}'" {{ !request('category') ? 'checked' : '' }} class="text-indigo-600">
                             All
                         </label>
                         @foreach ($categories as $category)
                             <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                                <input type="radio" name="category_filter" value="{{ $category->id }}" onchange="window.location='{{ route('products.index', ['category' => $category->id]) }}'" {{ request('category') == $category->id ? 'checked' : '' }} class="text-indigo-600">
+                                <input type="radio" name="category_filter" value="{{ $category->id }}" onchange="window.location='{{ route('products.index', array_filter(['category' => $category->id, 'min_price' => request('min_price'), 'max_price' => request('max_price')])) }}'" {{ request('category') == $category->id ? 'checked' : '' }} class="text-indigo-600">
                                 {{ $category->name }}
                             </label>
                         @endforeach
                     </div>
                 </div>
 
-                <!-- Price Range (visual placeholder matching wireframe) -->
+                <!-- Price Range -->
                 <div>
                     <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Price Range</h4>
-                    <div class="flex items-center gap-2 text-sm">
-                        <span class="text-gray-500">$0</span>
-                        <div class="flex-1 h-1 bg-gray-200 dark:bg-gray-600 rounded"></div>
-                        <span class="text-gray-500">$500</span>
-                    </div>
+                    <form method="GET" action="{{ route('products.index') }}">
+                        @if(request('category'))
+                            <input type="hidden" name="category" value="{{ request('category') }}">
+                        @endif
+                        <div class="flex items-center gap-2 text-sm mb-2">
+                            <input type="number" name="min_price" value="{{ request('min_price') }}" placeholder="Min" min="0" step="0.01" class="w-full border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm dark:bg-gray-700 dark:text-gray-200">
+                            <span class="text-gray-400">-</span>
+                            <input type="number" name="max_price" value="{{ request('max_price') }}" placeholder="Max" min="0" step="0.01" class="w-full border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm dark:bg-gray-700 dark:text-gray-200">
+                        </div>
+                        <button type="submit" class="w-full bg-indigo-600 text-white text-sm py-1.5 rounded hover:bg-indigo-700 transition">Apply</button>
+                    </form>
                 </div>
             </div>
         </aside>
