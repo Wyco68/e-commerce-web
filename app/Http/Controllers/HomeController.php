@@ -11,7 +11,13 @@ class HomeController extends Controller
     public function index()
     {
         $categories = Category::all();
-        $featuredProducts = Product::with('category', 'discounts')->inRandomOrder()->take(4)->get();
-        return view('home', compact('categories', 'featuredProducts'));
+        $discountedProducts = Product::with('category', 'discounts')
+            ->whereHas('discounts')
+            ->withMax('discounts', 'percentage')
+            ->orderByDesc('discounts_max_percentage')
+            ->take(4)
+            ->get();
+
+        return view('home', compact('categories', 'discountedProducts'));
     }
 }
