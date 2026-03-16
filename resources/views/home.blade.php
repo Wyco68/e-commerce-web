@@ -21,10 +21,13 @@
         @endforeach
     </div>
 
-    <!-- Featured Products -->
-    <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">Featured Products</h2>
+    <!-- Discounted Products -->
+    <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">Special Offers</h2>
+    @if($discountedProducts->isEmpty())
+        <p class="text-gray-600 dark:text-gray-400 mb-12">No discounted products are available right now. Check back soon.</p>
+    @else
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        @foreach ($featuredProducts as $product)
+        @foreach ($discountedProducts as $product)
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
                 <div class="p-4">
                     @php
@@ -53,6 +56,7 @@
             </div>
         @endforeach
     </div>
+    @endif
 
     @guest
     <div class="mt-12 text-center">
