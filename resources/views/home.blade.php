@@ -27,8 +27,19 @@
         @foreach ($featuredProducts as $product)
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
                 <div class="p-4">
+                    @php
+                        $topDiscount = $product->discounts->sortByDesc('percentage')->first();
+                    @endphp
                     <h3 class="font-semibold text-gray-900 dark:text-gray-100">{{ $product->name }}</h3>
                     <p class="text-indigo-600 dark:text-indigo-400 font-bold mt-1">${{ number_format($product->price, 2) }}</p>
+                    @if($topDiscount)
+                        <p class="text-xs text-green-700 dark:text-green-400 mt-1 font-medium">
+                            Discount available: up to {{ rtrim(rtrim(number_format((float) $topDiscount->percentage, 2, '.', ''), '0'), '.') }}% off
+                            @if($topDiscount->min_quantity > 1)
+                                ({{ $topDiscount->min_quantity }}+ qty)
+                            @endif
+                        </p>
+                    @endif
                     @auth
                         <form action="{{ route('cart.add', $product) }}" method="POST" class="mt-3">
                             @csrf

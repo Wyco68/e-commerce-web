@@ -11,7 +11,7 @@ class HomeController extends Controller
     public function index()
     {
         $categories = Category::all();
-        $featuredProducts = Product::with('category')->inRandomOrder()->take(4)->get();
+        $featuredProducts = Product::with('category', 'discounts')->inRandomOrder()->take(4)->get();
         return view('home', compact('categories', 'featuredProducts'));
     }
 }
