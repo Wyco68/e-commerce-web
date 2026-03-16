@@ -21,7 +21,17 @@
                     <!-- Product Info -->
                     <div class="flex-1 min-w-0">
                         <h3 class="font-semibold text-gray-900 dark:text-gray-100">{{ $item['product']->name }}</h3>
-                        <p class="text-sm text-indigo-600 dark:text-indigo-400 font-medium">${{ number_format($item['product']->price, 2) }}</p>
+                        <p class="text-sm text-indigo-600 dark:text-indigo-400 font-medium">Unit price: ${{ number_format($item['product']->price, 2) }}</p>
+                        @if($item['applied_discount_percentage'])
+                            <p class="text-sm text-green-700 dark:text-green-400 font-medium mt-1">
+                                Discount applied: {{ rtrim(rtrim(number_format((float) $item['applied_discount_percentage'], 2, '.', ''), '0'), '.') }}% off.
+                                You save ${{ number_format($item['savings'], 2) }} on this item.
+                            </p>
+                        @elseif($item['next_discount'])
+                            <p class="text-sm text-amber-700 dark:text-amber-400 font-medium mt-1">
+                                Buy {{ $item['next_discount']->min_quantity }}+ to get {{ rtrim(rtrim(number_format((float) $item['next_discount']->percentage, 2, '.', ''), '0'), '.') }}% off.
+                            </p>
+                        @endif
                     </div>
 
                     <!-- Quantity Control -->
@@ -40,6 +50,15 @@
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                         </button>
                     </form>
+
+                    <div class="w-32 text-right">
+                        @if($item['line_total'] < $item['original_total'])
+                            <p class="text-xs line-through text-gray-400">${{ number_format($item['original_total'], 2) }}</p>
+                            <p class="font-semibold text-green-700 dark:text-green-400">${{ number_format($item['line_total'], 2) }}</p>
+                        @else
+                            <p class="font-semibold text-gray-900 dark:text-gray-100">${{ number_format($item['line_total'], 2) }}</p>
+                        @endif
+                    </div>
                 </div>
             @endforeach
 
@@ -48,9 +67,19 @@
                 <div class="flex justify-between items-center mb-4">
                     <span class="font-semibold text-gray-900 dark:text-gray-100">Subtotal</span>
                     <span class="text-lg font-bold text-gray-900 dark:text-gray-100">
-                        ${{ number_format(collect($cartItems)->sum(fn($i) => $i['product']->price * $i['quantity']), 2) }}
+                        ${{ number_format($subtotal, 2) }}
                     </span>
                 </div>
+                @if($totalSavings > 0)
+                    <div class="flex justify-between items-center mb-4 text-sm">
+                        <span class="text-gray-600 dark:text-gray-300">Original subtotal</span>
+                        <span class="line-through text-gray-400">${{ number_format($originalSubtotal, 2) }}</span>
+                    </div>
+                    <div class="flex justify-between items-center mb-4 text-sm">
+                        <span class="font-medium text-green-700 dark:text-green-400">Your discount savings</span>
+                        <span class="font-medium text-green-700 dark:text-green-400">-${{ number_format($totalSavings, 2) }}</span>
+                    </div>
+                @endif
                 <div class="flex gap-3">
                     <a href="{{ route('products.index') }}" class="flex-1 text-center border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition">Continue Shopping</a>
                     <a href="{{ route('orders.create') }}" class="flex-1 text-center bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700 transition font-medium">Checkout</a>

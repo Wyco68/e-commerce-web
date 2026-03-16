@@ -55,9 +55,22 @@
                 @foreach ($products as $product)
                     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5 flex items-center gap-5">
                         <div class="flex-1 min-w-0">
+                            @php
+                                $topDiscount = $product->discounts->sortByDesc('percentage')->first();
+                            @endphp
                             <a href="{{ route('products.show', $product) }}" class="font-semibold text-gray-900 dark:text-gray-100 hover:text-indigo-600">{{ $product->name }}</a>
                             <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{{ $product->category->name ?? 'Uncategorized' }}</p>
                             <p class="text-indigo-600 dark:text-indigo-400 font-bold mt-1">${{ number_format($product->price, 2) }}</p>
+                            @if($topDiscount)
+                                <p class="text-sm text-green-700 dark:text-green-400 mt-1 font-medium">
+                                    On discount: up to {{ rtrim(rtrim(number_format((float) $topDiscount->percentage, 2, '.', ''), '0'), '.') }}% off
+                                    @if($topDiscount->min_quantity > 1)
+                                        when you buy {{ $topDiscount->min_quantity }}+.
+                                    @else
+                                        on this item.
+                                    @endif
+                                </p>
+                            @endif
                         </div>
 
                         @auth

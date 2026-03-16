@@ -12,7 +12,7 @@ class ProductController extends Controller
     {
         $categories = Category::all();
 
-        $query = Product::with('category');
+        $query = Product::with('category', 'discounts');
         if ($request->filled('category')) {
             $query->where('category_id', $request->integer('category'));
         }

@@ -34,6 +34,12 @@
                                 @if($item['line_total'] < $item['original_total'])
                                     <span class="line-through text-gray-400">${{ number_format($item['original_total'], 2) }}</span>
                                     <span class="text-green-600 font-medium">${{ number_format($item['line_total'], 2) }}</span>
+                                    <p class="text-xs text-green-700 dark:text-green-400 mt-1">
+                                        You save ${{ number_format($item['savings'], 2) }}
+                                        @if($item['applied_discount_percentage'])
+                                            ({{ rtrim(rtrim(number_format((float) $item['applied_discount_percentage'], 2, '.', ''), '0'), '.') }}% off)
+                                        @endif
+                                    </p>
                                 @else
                                     ${{ number_format($item['line_total'], 2) }}
                                 @endif
@@ -48,6 +54,12 @@
                     <span class="font-semibold text-gray-900 dark:text-gray-100">Total</span>
                     <span class="text-xl font-bold text-indigo-600 dark:text-indigo-400">${{ number_format($total, 2) }}</span>
                 </div>
+                @if($totalSavings > 0)
+                    <div class="flex justify-between items-center mb-4 text-sm">
+                        <span class="font-medium text-green-700 dark:text-green-400">Discount savings on this order</span>
+                        <span class="font-medium text-green-700 dark:text-green-400">-${{ number_format($totalSavings, 2) }}</span>
+                    </div>
+                @endif
                 <div class="flex gap-3">
                     <a href="{{ route('cart.index') }}" class="flex-1 text-center border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition">Back to Cart</a>
                     <form action="{{ route('orders.store') }}" method="POST" class="flex-1">

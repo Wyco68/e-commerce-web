@@ -29,7 +29,7 @@ class OrderController extends Controller
         foreach ($cart as $productId => $item) {
             $product = Product::find($productId);
             if ($product) {
-                $lineTotal = $discountService->calculatePriceWithDiscount(
+                $line = $discountService->calculateLineWithDiscount(
                     $product->price,
                     $item['quantity'],
                     $product->id
@@ -37,15 +37,18 @@ class OrderController extends Controller
                 $cartItems[] = [
                     'product' => $product,
                     'quantity' => $item['quantity'],
-                    'line_total' => $lineTotal,
-                    'original_total' => $product->price * $item['quantity'],
+                    'line_total' => $line['discounted_total'],
+                    'original_total' => $line['original_total'],
+                    'savings' => $line['savings'],
+                    'applied_discount_percentage' => $line['discount_percentage'],
                 ];
             }
         }
 
         $total = array_sum(array_column($cartItems, 'line_total'));
+        $totalSavings = array_sum(array_column($cartItems, 'savings'));
 
-        return view('orders.create', compact('cartItems', 'total'));
+        return view('orders.create', compact('cartItems', 'total', 'totalSavings'));
     }
 
     public function store(Request $request)
