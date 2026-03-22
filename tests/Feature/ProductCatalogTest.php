@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Category;
+use App\Models\Discount;
 use App\Models\Product;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -17,6 +18,11 @@ class ProductCatalogTest extends TestCase
         $product = Product::factory()->create([
             'name' => 'Test Widget',
             'category_id' => $category->id,
+        ]);
+        Discount::factory()->create([
+            'product_id' => $product->id,
+            'min_quantity' => 1,
+            'percentage' => 10,
         ]);
 
         $response = $this->get('/');
