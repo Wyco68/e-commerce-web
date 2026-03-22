@@ -8,40 +8,18 @@ use Illuminate\Http\Request;
 
 class CartController extends Controller
 {
+    public function __construct(private readonly DiscountService $discountService)
+    {
+    }
+
     public function index()
     {
         $cart = session()->get('cart', []);
-        $cartItems = [];
-        $discountService = new DiscountService();
-
-        foreach ($cart as $productId => $item) {
-            $product = Product::with('discounts')->find($productId);
-            if ($product) {
-                $line = $discountService->calculateLineWithDiscount(
-                    $product->price,
-                    $item['quantity'],
-                    $product->id
-                );
-                $nextDiscount = $product->discounts
-                    ->where('min_quantity', '>', $item['quantity'])
-                    ->sortBy('min_quantity')
-                    ->first();
-
-                $cartItems[] = [
-                    'product' => $product,
-                    'quantity' => $item['quantity'],
-                    'line_total' => $line['discounted_total'],
-                    'original_total' => $line['original_total'],
-                    'savings' => $line['savings'],
-                    'applied_discount_percentage' => $line['discount_percentage'],
-                    'next_discount' => $nextDiscount,
-                ];
-            }
-        }
-
-        $subtotal = array_sum(array_column($cartItems, 'line_total'));
-        $originalSubtotal = array_sum(array_column($cartItems, 'original_total'));
-        $totalSavings = $originalSubtotal - $subtotal;
+        $summary = $this->discountService->summarizeCart($cart, true);
+        $cartItems = $summary['cartItems'];
+        $subtotal = $summary['subtotal'];
+        $originalSubtotal = $summary['originalSubtotal'];
+        $totalSavings = $summary['totalSavings'];
 
         return view('cart.index', compact('cartItems', 'subtotal', 'originalSubtotal', 'totalSavings'));
     }
@@ -52,7 +30,6 @@ class CartController extends Controller
             'quantity' => ['required', 'integer', 'min:1'],
         ]);
 
-        $discountService = new DiscountService();
         $cart = session()->get('cart', []);
         $qty = (int) $request->input('quantity', 1);
 
@@ -65,7 +42,7 @@ class CartController extends Controller
         session()->put('cart', $cart);
 
         $effectiveQuantity = $cart[$product->id]['quantity'];
-        $appliedDiscount = $discountService->getApplicableDiscount($product->id, $effectiveQuantity);
+        $appliedDiscount = $this->discountService->getApplicableDiscount($product->id, $effectiveQuantity);
 
         $message = $product->name . ' added to cart.';
         if ($appliedDiscount) {

@@ -16,7 +16,10 @@ class DiscountSeeder extends Seeder
         ];
 
         foreach ($discounts as $discount) {
-            Discount::create($discount);
+            Discount::updateOrCreate(
+                ['product_id' => $discount['product_id'], 'min_quantity' => $discount['min_quantity']],
+                $discount
+            );
         }
     }
 }

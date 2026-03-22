@@ -134,14 +134,14 @@ class OrderTest extends TestCase
         $response->assertRedirect('/login');
     }
 
-    public function test_guest_cannot_access_account(): void
+    public function test_guest_cannot_access_profile(): void
     {
-        $response = $this->get('/account');
+        $response = $this->get('/profile');
 
         $response->assertRedirect('/login');
     }
 
-    public function test_account_shows_user_info(): void
+    public function test_profile_shows_user_info(): void
     {
         $user = User::factory()->create([
             'name' => 'Jane Doe',
@@ -150,7 +150,7 @@ class OrderTest extends TestCase
             'address' => '456 Test Ave',
         ]);
 
-        $response = $this->actingAs($user)->get('/account');
+        $response = $this->actingAs($user)->get('/profile');
 
         $response->assertStatus(200);
         $response->assertSee('Jane Doe');

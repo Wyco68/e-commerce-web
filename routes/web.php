@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\AccountController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\OrderController;
@@ -15,10 +14,6 @@ Route::get('/products/{product}', [ProductController::class, 'show'])->name('pro
 
 // Authenticated routes
 Route::middleware('auth')->group(function () {
-    // Account
-    Route::get('/account', [AccountController::class, 'show'])->name('account.show');
-    Route::patch('/account', [AccountController::class, 'update'])->name('account.update');
-
     // Cart (session-based)
     Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
     Route::post('/cart/{product}', [CartController::class, 'add'])->name('cart.add');
