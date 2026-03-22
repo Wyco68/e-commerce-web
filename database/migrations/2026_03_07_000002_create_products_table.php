@@ -15,6 +15,10 @@ class CreateProductsTable extends Migration
                 $table->text('description');
                 $table->decimal('price', 10, 2);
                 $table->foreignId('category_id')->constrained('categories')->onDelete('cascade');
+                
+                // Indexes for product filtering query (ProductController::index)
+                $table->index('price');
+                $table->index(['category_id', 'price']);
             });
         }
     }
