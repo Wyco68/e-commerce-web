@@ -13,6 +13,9 @@ class CreateDiscountsTable extends Migration
             $table->foreignId('product_id')->constrained('products')->onDelete('cascade');
             $table->integer('min_quantity');
             $table->decimal('percentage', 5, 2);
+            
+            // Index for discount lookup query (DiscountService::getApplicableDiscount)
+            $table->index(['product_id', 'min_quantity']);
         });
     }
 

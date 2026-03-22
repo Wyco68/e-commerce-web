@@ -15,6 +15,9 @@ class CreateOrdersTable extends Migration
                 $table->timestamp('date_time')->default(DB::raw('CURRENT_TIMESTAMP'));
                 $table->decimal('total_price', 10, 2);
                 $table->string('status');
+                
+                // Index for order history query (OrderController::index)
+                $table->index(['user_id', 'date_time']);
             });
         }
     }
