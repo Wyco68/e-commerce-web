@@ -48,7 +48,9 @@ composer install
 ./vendor/bin/sail artisan migrate:fresh --seed
 ```
 
-5. Open http://localhost
+5. Open http://localhost in the browser (Sail serves on port **80** by default).
+
+**Do not** run `php artisan serve` from Windows CMD or PowerShell on a `C:\` clone — `.env` uses `DB_HOST=mysql` and `REDIS_HOST=redis`, which only work **inside** Sail.
 
 ## Admin Setup
 
@@ -69,6 +71,36 @@ Admin users come from the database seeder (not a separate command).
 ```
 
 ## Troubleshooting
+
+### Home page error and “No database queries”
+
+The home route always reads MySQL when setup is correct. If the error page shows **no database queries**, the app likely never reached the database — often Redis/session, a missing Vite build, or PHP running outside Docker.
+
+Run this **full setup** from the project root in **WSL** (one block, in order):
+
+```bash
+cp .env.example .env
+composer install
+./vendor/bin/sail up -d
+./vendor/bin/sail npm ci
+./vendor/bin/sail npm run build
+./vendor/bin/sail artisan key:generate
+./vendor/bin/sail artisan migrate:fresh --seed
+```
+
+Then check everything is healthy:
+
+```bash
+./vendor/bin/sail ps
+./vendor/bin/sail exec laravel.test test -f public/build/manifest.json && echo "Vite build OK"
+./vendor/bin/sail artisan migrate:status
+```
+
+You should see **three** containers running (`laravel.test`, `mysql`, `redis`) and migrations listed as **Ran**.
+
+Open **http://localhost** (not `127.0.0.1` on a different port unless you changed `APP_PORT` in `.env`).
+
+Still broken? Ask your friend to copy the **red error title** from the page (e.g. “Vite manifest not found”, “Connection refused”, “No application encryption key”) — that pinpoints the fix.
 
 ### `npm install` or `npm ci` fails
 
