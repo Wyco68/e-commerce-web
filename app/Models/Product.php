@@ -84,7 +84,8 @@ class Product extends Model
             return $path;
         }
 
-        return asset('storage/'.$path);
+        // Relative URL — works on localhost, 127.0.0.1, and Render without APP_URL mismatch
+        return '/storage/'.ltrim($path, '/');
     }
 
     public function getImageUrlAttribute(): ?string

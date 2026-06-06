@@ -80,7 +80,7 @@ class ProductCatalogTest extends TestCase
         ]);
         ProductVariant::factory()->create(['product_id' => $product->id]);
 
-        $expectedUrl = asset('storage/'.$path);
+        $expectedUrl = '/storage/'.$path;
 
         $this->get('/products/imaged-widget')
             ->assertOk()
@@ -121,7 +121,7 @@ class ProductCatalogTest extends TestCase
         $product->update(['images' => [$path]]);
         StoreCache::forgetProducts();
 
-        $expectedUrl = asset('storage/'.$path);
+        $expectedUrl = '/storage/'.$path;
 
         $this->get('/products?category='.$category->id)
             ->assertOk()

@@ -23,7 +23,9 @@ class AppServiceProvider extends ServiceProvider
         if ($this->app->environment('production')) {
             URL::forceScheme('https');
 
-            if ($appUrl = config('app.url')) {
+            $appUrl = config('app.url');
+            // Avoid forcing localhost as root on Render/production — breaks asset URLs in the browser
+            if ($appUrl && ! str_contains($appUrl, 'localhost') && ! str_contains($appUrl, '127.0.0.1')) {
                 URL::forceRootUrl($appUrl);
             }
         }

@@ -78,7 +78,15 @@ class SecureUploadService
             return null;
         }
 
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+
         $disk ??= config('filesystems.product_disk', 'public');
+
+        if ($disk === 'public' || $disk === config('filesystems.product_disk', 'public')) {
+            return '/storage/'.ltrim($path, '/');
+        }
 
         return Storage::disk($disk)->url($path);
     }
