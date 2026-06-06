@@ -10,6 +10,22 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RefundController;
 use App\Http\Controllers\Admin;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
+
+// Serve uploaded public-disk files when the storage symlink is missing (local dev, some hosts)
+Route::get('/storage/{path}', function (string $path) {
+    if (str_contains($path, '..')) {
+        abort(404);
+    }
+
+    $disk = Storage::disk('public');
+
+    if (! $disk->exists($path)) {
+        abort(404);
+    }
+
+    return $disk->response($path);
+})->where('path', '.*')->name('storage.public');
 
 // Public routes
 Route::middleware('redirect_admin')->group(function () {
@@ -19,8 +35,8 @@ Route::middleware('redirect_admin')->group(function () {
     Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
 });
 
-// Authenticated routes
-Route::middleware(['auth', 'redirect_admin'])->group(function () {
+// Authenticated routes (email verification required for shopping)
+Route::middleware(['auth', 'verified', 'redirect_admin'])->group(function () {
     // Cart (DB-based)
     Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
     Route::post('/cart', [CartController::class, 'add'])->name('cart.add');

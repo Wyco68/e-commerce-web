@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Services\SecureUploadService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -79,7 +78,13 @@ class Product extends Model
             return null;
         }
 
-        return app(SecureUploadService::class)->url($this->image_path);
+        $path = $this->image_path;
+
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+
+        return asset('storage/'.$path);
     }
 
     public function getImageUrlAttribute(): ?string

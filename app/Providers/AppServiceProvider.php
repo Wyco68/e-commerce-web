@@ -2,17 +2,6 @@
 
 namespace App\Providers;
 
-use App\Events\OrderPlaced;
-use App\Events\OrderStatusUpdated;
-use App\Events\RefundApproved;
-use App\Events\RefundRejected;
-use App\Events\RefundRequested;
-use App\Listeners\NotifyAdminOrderPlaced;
-use App\Listeners\NotifyAdminRefundRequested;
-use App\Listeners\NotifyUserOrderStatusUpdated;
-use App\Listeners\NotifyUserRefundApproved;
-use App\Listeners\NotifyUserRefundRejected;
-use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
@@ -39,11 +28,14 @@ class AppServiceProvider extends ServiceProvider
             }
         }
 
-        // Render TLS is terminated at the edge; Secure cookies + undetected HTTPS = no Set-Cookie → 419
-        if (config('app.demo_mode') || env('RENDER')) {
+        if (config('app.force_insecure_cookies')) {
             config([
                 'session.secure' => false,
                 'session.same_site' => 'lax',
+            ]);
+        } elseif ($this->app->environment('production')) {
+            config([
+                'session.secure' => filter_var(env('SESSION_SECURE_COOKIE', true), FILTER_VALIDATE_BOOLEAN),
             ]);
         }
 
@@ -51,6 +43,24 @@ class AppServiceProvider extends ServiceProvider
             config([
                 'session.lifetime' => config('app.demo_session_lifetime'),
             ]);
+        }
+
+        $this->ensurePublicStorageLink();
+    }
+
+    private function ensurePublicStorageLink(): void
+    {
+        $link = public_path('storage');
+        $target = storage_path('app/public');
+
+        if (file_exists($link) || ! is_dir($target)) {
+            return;
+        }
+
+        try {
+            symlink($target, $link);
+        } catch (\Throwable) {
+            // Fallback route in web.php serves /storage/* when symlink cannot be created.
         }
     }
 }

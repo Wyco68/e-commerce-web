@@ -7,14 +7,16 @@ use App\Events\RefundRejected;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\RefundRequest;
+use App\Services\OrderService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class RefundController extends Controller
 {
-    /**
-     * List all pending (and recent) refund requests.
-     */
+    public function __construct(
+        private readonly OrderService $orderService,
+    ) {}
+
     public function index(Request $request)
     {
         $query = RefundRequest::with('order', 'user')
@@ -29,12 +31,9 @@ class RefundController extends Controller
         return view('admin.refunds.index', compact('refundRequests'));
     }
 
-    /**
-     * Admin approves a refund request.
-     */
     public function approve(Request $request, RefundRequest $refundRequest)
     {
-        if (!$refundRequest->isPending()) {
+        if (! $refundRequest->isPending()) {
             return redirect()->back()->with('error', 'This refund request has already been reviewed.');
         }
 
@@ -49,8 +48,11 @@ class RefundController extends Controller
                 'reviewed_at' => now(),
             ]);
 
-            // Update order status to refunded
-            $refundRequest->order->update(['status' => Order::STATUS_REFUNDED]);
+            $this->orderService->updateStatus(
+                $refundRequest->order,
+                Order::STATUS_REFUNDED,
+                $request->input('admin_note') ?? 'Refund approved.',
+            );
         });
 
         event(new RefundApproved($refundRequest->fresh()));
@@ -58,12 +60,9 @@ class RefundController extends Controller
         return redirect()->back()->with('success', 'Refund request approved and order marked as refunded.');
     }
 
-    /**
-     * Admin rejects a refund request.
-     */
     public function reject(Request $request, RefundRequest $refundRequest)
     {
-        if (!$refundRequest->isPending()) {
+        if (! $refundRequest->isPending()) {
             return redirect()->back()->with('error', 'This refund request has already been reviewed.');
         }
 
@@ -78,8 +77,11 @@ class RefundController extends Controller
                 'reviewed_at' => now(),
             ]);
 
-            // Revert order status to completed
-            $refundRequest->order->update(['status' => Order::STATUS_COMPLETED]);
+            $this->orderService->updateStatus(
+                $refundRequest->order,
+                Order::STATUS_COMPLETED,
+                'Refund rejected: '.$request->input('admin_note'),
+            );
         });
 
         event(new RefundRejected($refundRequest->fresh()));

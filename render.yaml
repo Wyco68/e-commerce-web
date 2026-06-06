@@ -41,7 +41,13 @@ services:
       - key: CACHE_STORE
         value: file
       - key: SESSION_SECURE_COOKIE
-        value: "false"
+        value: "true"
+      - key: SESSION_ENCRYPT
+        value: "true"
+      - key: TRUSTED_PROXIES
+        value: "*"
+      - key: DEMO_ADMIN_PASSWORD
+        sync: false
       - key: RENDER
         value: "true"
       - key: QUEUE_CONNECTION

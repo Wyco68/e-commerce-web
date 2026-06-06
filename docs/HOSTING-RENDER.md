@@ -13,15 +13,19 @@ Portfolio demo: Docker Web Service, SQLite, `render.yaml` Blueprint. **Setup ste
 
 ## Demo logins
 
+Demo users are created on **first seed only**. Passwords are **not** reset on subsequent deploys.
+
 | Role | Email | Password |
 |------|--------|----------|
-| Admin | `admin@carpart.test` | `password` |
-| Customer | `user@carpart.test` | `password` |
+| Admin | `admin@carpart.test` | Set `DEMO_ADMIN_PASSWORD` in Render Environment |
+| Customer | `user@carpart.test` | Set `DEMO_USER_PASSWORD` (optional; falls back to admin password) |
+
+**Security:** Use a strong, unique `DEMO_ADMIN_PASSWORD` in the Render dashboard. Do not commit it to git or publish it in public docs.
 
 ## Free tier
 
 - Sleeps after ~15 min idle; cold start ~30–60s
-- SQLite + seed on each container start when `APP_DEMO_MODE=true`
+- SQLite + seed on each container start when `APP_DEMO_MODE=true` (catalog reset; user passwords preserved after first create)
 - Uploads on local disk may not survive redeploy
 
 ## Troubleshooting
@@ -30,12 +34,8 @@ Portfolio demo: Docker Web Service, SQLite, `render.yaml` Blueprint. **Setup ste
 |-------|-----|
 | 502 / build fail | Check logs; set `APP_KEY` and `APP_URL` |
 | 500 everywhere | `APP_KEY=base64:…`, correct `APP_URL`, redeploy |
-| 419 on login | `SESSION_SECURE_COOKIE=false`, `SESSION_DRIVER=cookie`, clear cookies |
+| 419 on login | Ensure `TRUSTED_PROXIES=*`, `SESSION_SECURE_COOKIE=true`, `SESSION_DRIVER=cookie`, clear cookies |
 | No notifications | Set all `PUSHER_*` + `VITE_PUSHER_*`, redeploy (Vite bakes at build) |
 | No products | Redeploy or `php artisan db:seed --class=RenderDemoSeeder --force` in Shell |
-| Unstyled UI | Redeploy; hard-refresh; check `npm run build` in deploy logs |
 
-## Related
-
-- [UPSTASH-PUSHER.md](UPSTASH-PUSHER.md) — optional Redis + Pusher env names
-- [HOSTING-PRODUCTION.md](HOSTING-PRODUCTION.md) — full production layout
+See also [UPSTASH-PUSHER.md](./UPSTASH-PUSHER.md) for Redis and Pusher setup.

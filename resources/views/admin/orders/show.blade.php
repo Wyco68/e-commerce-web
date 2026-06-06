@@ -15,7 +15,13 @@
         <div x-show="warning.show" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm" style="display: none;" x-transition>
             <div class="bg-white rounded-2xl shadow-xl max-w-sm w-full mx-4 p-6" @click.away="warning.show = false">
                 <h3 class="text-lg font-bold text-slate-900 mb-2" x-text="warning.title"></h3>
-                <p class="text-slate-600 mb-6 text-sm leading-relaxed" x-text="warning.message"></p>
+                <p class="text-slate-600 mb-4 text-sm leading-relaxed" x-text="warning.message"></p>
+                <template x-if="warning.requiresNote">
+                    <div class="mb-4">
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Admin note (required)</label>
+                        <textarea x-model="warning.adminNote" rows="3" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-slate-900/10 focus:border-slate-300" placeholder="Explain why this order is being marked paid without proof…"></textarea>
+                    </div>
+                </template>
                 <div class="flex justify-end gap-3">
                     <button @click="warning.show = false" class="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition">Cancel</button>
                     <button @click="confirmAction()" x-show="warning.actionUrl" class="px-4 py-2 rounded-xl text-sm font-bold text-white bg-slate-900 hover:bg-slate-800 transition shadow-sm" x-text="warning.confirmText"></button>
@@ -136,7 +142,13 @@
         <div x-show="warning.show" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm" style="display: none;" x-transition>
             <div class="bg-white rounded-2xl shadow-xl max-w-sm w-full mx-4 p-6" @click.away="warning.show = false">
                 <h3 class="text-lg font-bold text-slate-900 mb-2" x-text="warning.title"></h3>
-                <p class="text-slate-600 mb-6 text-sm leading-relaxed" x-text="warning.message"></p>
+                <p class="text-slate-600 mb-4 text-sm leading-relaxed" x-text="warning.message"></p>
+                <template x-if="warning.requiresNote">
+                    <div class="mb-4">
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Admin note (required)</label>
+                        <textarea x-model="warning.adminNote" rows="3" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-slate-900/10 focus:border-slate-300" placeholder="Explain why this order is being marked paid without proof…"></textarea>
+                    </div>
+                </template>
                 <div class="flex justify-end gap-3">
                     <button @click="warning.show = false" class="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition">Cancel</button>
                     <button @click="confirmAction()" x-show="warning.actionUrl" class="px-4 py-2 rounded-xl text-sm font-bold text-white bg-slate-900 hover:bg-slate-800 transition shadow-sm" x-text="warning.confirmText"></button>
@@ -278,11 +290,6 @@
                         </div>
                     @endif
 
-                    @if($order->payment_proof)
-                        <div class="mt-4">
-                            <img src="{{ asset($order->payment_proof) }}" class="rounded-xl shadow border border-slate-100" />
-                        </div>
-                    @endif
                 </div>
             </x-admin.card>
 
@@ -305,7 +312,9 @@ document.addEventListener('alpine:init', () => {
             confirmText: '',
             actionUrl: '',
             actionMethod: '',
-            actionData: null
+            actionData: null,
+            requiresNote: false,
+            adminNote: '',
         },
         
         get nextActionLabel() {
@@ -317,12 +326,15 @@ document.addEventListener('alpine:init', () => {
         
         promptAction() {
             if (this.status === 'pending_payment') {
+                const hasProof = this.hasProof;
                 this.showWarning(
-                    this.hasProof ? 'Verify Payment Proof' : 'Mark Order as Paid',
-                    this.hasProof ? 'Are you sure you want to approve this payment proof?' : 'Are you sure you want to mark this order as paid without proof?',
-                    this.hasProof ? 'Verify' : 'Mark Paid',
+                    hasProof ? 'Verify Payment Proof' : 'Mark Order as Paid',
+                    hasProof ? 'Are you sure you want to approve this payment proof?' : 'Provide an admin note explaining why this order is being marked paid without payment proof.',
+                    hasProof ? 'Verify' : 'Mark Paid',
                     `/admin/orders/${this.orderId}/process-payment`,
-                    'POST'
+                    'POST',
+                    null,
+                    !hasProof
                 );
             } else if (this.status === 'paid') {
                 this.showWarning(
@@ -345,7 +357,7 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
-        showWarning(title, message, confirmText, url, method, data = null) {
+        showWarning(title, message, confirmText, url, method, data = null, requiresNote = false) {
             this.warning = {
                 show: true,
                 title,
@@ -353,7 +365,9 @@ document.addEventListener('alpine:init', () => {
                 confirmText,
                 actionUrl: url,
                 actionMethod: method,
-                actionData: data
+                actionData: data,
+                requiresNote,
+                adminNote: '',
             };
         },
 
@@ -362,9 +376,24 @@ document.addEventListener('alpine:init', () => {
                 this.warning.show = false;
                 return;
             }
+
+            if (this.warning.requiresNote && !this.warning.adminNote.trim()) {
+                this.warning.message = 'An admin note is required to mark this order paid without proof.';
+                return;
+            }
+
             this.loading = true;
             this.warning.show = false;
             try {
+                let body = null;
+                if (this.warning.actionData) {
+                    body = JSON.stringify(this.warning.actionData);
+                } else if (this.warning.actionUrl.includes('process-payment')) {
+                    body = JSON.stringify({
+                        admin_note: this.warning.adminNote.trim() || null,
+                    });
+                }
+
                 const response = await fetch(this.warning.actionUrl, {
                     method: this.warning.actionMethod,
                     headers: {
@@ -372,7 +401,7 @@ document.addEventListener('alpine:init', () => {
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                         'Accept': 'application/json'
                     },
-                    body: this.warning.actionData ? JSON.stringify(this.warning.actionData) : null
+                    body,
                 });
                 
                 const result = await response.json();

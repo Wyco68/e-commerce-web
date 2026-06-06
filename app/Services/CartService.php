@@ -21,6 +21,16 @@ class CartService
 
     public function addItem(Cart $cart, int $variantId, int $quantity = 1): CartItem
     {
+        $variant = ProductVariant::with(['product', 'inventory'])->findOrFail($variantId);
+
+        if (! $variant->is_active || ! $variant->product?->is_active) {
+            throw new \RuntimeException('This product is no longer available.');
+        }
+
+        if ($variant->available_stock < $quantity) {
+            throw new \RuntimeException('Insufficient stock for this product.');
+        }
+
         $item = CartItem::where('cart_id', $cart->id)
             ->where('variant_id', $variantId)
             ->first();
@@ -39,6 +49,16 @@ class CartService
 
     public function updateQuantity(Cart $cart, int $variantId, int $quantity): CartItem
     {
+        $variant = ProductVariant::with(['product', 'inventory'])->findOrFail($variantId);
+
+        if (! $variant->is_active || ! $variant->product?->is_active) {
+            throw new \RuntimeException('This product is no longer available.');
+        }
+
+        if ($variant->available_stock < $quantity) {
+            throw new \RuntimeException('Insufficient stock for this product.');
+        }
+
         $item = CartItem::where('cart_id', $cart->id)
             ->where('variant_id', $variantId)
             ->firstOrFail();

@@ -6,11 +6,9 @@ use App\Events\OrderPlaced;
 use App\Events\OrderStatusUpdated;
 use App\Exceptions\InvalidOrderTransitionException;
 use App\Models\Cart;
-use App\Models\Discount;
 use App\Models\Order;
 use App\Models\OrderStatusHistory;
 use App\Models\Payment;
-use App\Models\Product;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
@@ -19,6 +17,8 @@ class OrderService
     /**
      * Strict state machine transition map.
      * Key = current status, Value = allowed next statuses.
+     *
+     * Note: transitions to STATUS_PAID must go through markAsPaid(), not updateStatus().
      */
     private const TRANSITIONS = [
         Order::STATUS_PENDING_PAYMENT => [
@@ -26,10 +26,9 @@ class OrderService
             Order::STATUS_CANCELLED,
         ],
         Order::STATUS_PENDING => [
-            Order::STATUS_PAID,        // paid ≈ confirmed
             Order::STATUS_CANCELLED,
         ],
-        Order::STATUS_PAID => [         // paid ≈ confirmed
+        Order::STATUS_PAID => [
             Order::STATUS_PROCESSING,
             Order::STATUS_SHIPPED,
             Order::STATUS_CANCELLED,
@@ -39,27 +38,26 @@ class OrderService
             Order::STATUS_CANCELLED,
         ],
         Order::STATUS_SHIPPED => [
-            Order::STATUS_COMPLETED,           // delivered
-            'return_requested',
+            Order::STATUS_COMPLETED,
+            Order::STATUS_RETURN_REQUESTED,
         ],
-        'return_requested' => [
-            'returned',
+        Order::STATUS_COMPLETED => [
+            Order::STATUS_RETURN_REQUESTED,
         ],
-        // Terminal states — no further transitions allowed
-        Order::STATUS_COMPLETED  => [],
+        Order::STATUS_RETURN_REQUESTED => [
+            Order::STATUS_RETURNED,
+            Order::STATUS_REFUNDED,
+            Order::STATUS_COMPLETED,
+        ],
         Order::STATUS_CANCELLED  => [],
         Order::STATUS_REFUNDED   => [],
-        'returned'               => [],
+        Order::STATUS_RETURNED   => [],
     ];
 
     public function __construct(
         private readonly InventoryService $inventoryService,
         private readonly CartService $cartService,
     ) {}
-
-    // ----------------------------------------------------------------
-    // Order Creation
-    // ----------------------------------------------------------------
 
     public function createFromCart(
         User $user,
@@ -74,9 +72,8 @@ class OrderService
                 throw new \RuntimeException('Cart is empty.');
             }
 
-            // Validate stock availability for all items (pre-check, no lock)
             foreach ($summary['items'] as $item) {
-                if (!$this->inventoryService->checkAvailability($item['variant']->id, $item['quantity'])) {
+                if (! $this->inventoryService->checkAvailability($item['variant']->id, $item['quantity'])) {
                     throw new \RuntimeException("Insufficient stock for {$item['product']->name} ({$item['variant']->sku})");
                 }
             }
@@ -92,7 +89,6 @@ class OrderService
                 'notes'             => $notes,
             ]);
 
-            // Create initial status history record
             OrderStatusHistory::create([
                 'order_id'    => $order->id,
                 'from_status' => null,
@@ -112,7 +108,6 @@ class OrderService
                     'quantity'               => $item['quantity'],
                 ]);
 
-                // Reserve stock (uses lockForUpdate internally)
                 $this->inventoryService->reserveStock(
                     $item['variant']->id,
                     $item['quantity'],
@@ -125,23 +120,17 @@ class OrderService
             return $order->load('orderItems');
         });
 
-        // Dispatch event AFTER transaction commits (afterCommit listener)
         event(new OrderPlaced($order));
 
         return $order;
     }
 
-    // ----------------------------------------------------------------
-    // Order Cancellation
-    // ----------------------------------------------------------------
-
     public function cancelOrder(Order $order): void
     {
-        if (!$order->isCancellable()) {
+        if (! $order->isCancellable()) {
             throw new \RuntimeException('Order cannot be cancelled in its current state.');
         }
 
-        // Capture before transaction so event dispatch has correct original status
         $fromStatus = $order->status;
 
         DB::transaction(function () use ($order, $fromStatus) {
@@ -168,35 +157,39 @@ class OrderService
         event(new OrderStatusUpdated($order->fresh(), $fromStatus, Order::STATUS_CANCELLED));
     }
 
-    // ----------------------------------------------------------------
-    // Process Payment (Single Action logic)
-    // ----------------------------------------------------------------
-
-    public function processPayment(Order $order, \App\Services\PaymentService $paymentService): void
+    /**
+     * Verify payment and mark order paid. Requires proof unless admin_note is provided.
+     *
+     * @throws \RuntimeException
+     */
+    public function processPayment(Order $order, PaymentService $paymentService, ?string $adminNote = null): void
     {
         $payment = $order->latestPayment;
         $hasProof = $payment && $payment->proof_path;
 
         if ($hasProof) {
             $paymentService->verifyPayment($payment);
-        } else {
-            $payment = $payment ?? $paymentService->initiatePayment($order);
-            $paymentService->verifyPayment($payment);
+
+            return;
         }
+
+        if (empty(trim($adminNote ?? ''))) {
+            throw new \RuntimeException(
+                'Payment proof is required. To override manually, provide an admin note explaining why.'
+            );
+        }
+
+        $payment = $payment ?? $paymentService->initiatePayment($order);
+        $paymentService->verifyPayment($payment, 'Manual override: '.trim($adminNote));
     }
 
-    // ----------------------------------------------------------------
-    // Mark as Paid (called by PaymentService after verification)
-    // ----------------------------------------------------------------
-
-    public function markAsPaid(Order $order, Payment $payment): void
+    public function markAsPaid(Order $order, Payment $payment, ?string $note = null): void
     {
-        DB::transaction(function () use ($order) {
-            // Idempotency guard — prevent double-confirmation
+        DB::transaction(function () use ($order, $note) {
             $fresh = Order::lockForUpdate()->findOrFail($order->id);
 
             if ($fresh->status !== Order::STATUS_PENDING_PAYMENT) {
-                return; // Already processed
+                return;
             }
 
             foreach ($fresh->orderItems as $item) {
@@ -216,38 +209,31 @@ class OrderService
                 'order_id'    => $fresh->id,
                 'from_status' => $fromStatus,
                 'to_status'   => Order::STATUS_PAID,
-                'note'        => 'Payment verified.',
+                'note'        => $note ?? 'Payment verified.',
             ]);
 
-            // Sync $order reference for event dispatch
             $order->status = $fresh->status;
         });
 
         event(new OrderStatusUpdated($order->fresh(), Order::STATUS_PENDING_PAYMENT, Order::STATUS_PAID));
     }
 
-    // ----------------------------------------------------------------
-    // State Machine Status Update
-    // ----------------------------------------------------------------
-
     /**
-     * Strictly validated status transition. Enforces the transition map.
-     * Wraps everything in a transaction and records history.
-     *
      * @throws InvalidOrderTransitionException
      */
     public function updateStatus(Order $order, string $newStatus, ?string $note = null): void
     {
-        // Capture before transaction for event dispatch
+        if ($newStatus === Order::STATUS_PAID) {
+            throw new InvalidOrderTransitionException($order->status, $newStatus);
+        }
+
         $fromStatus = $order->status;
 
         DB::transaction(function () use ($order, $newStatus, $note, &$fromStatus) {
-            // Re-fetch with lock to prevent concurrent mutations
-            $fresh = Order::lockForUpdate()->findOrFail($order->id);
+            $fresh = Order::lockForUpdate()->with('orderItems')->findOrFail($order->id);
 
             $this->validateTransition($fresh, $newStatus);
 
-            // Use the locked fresh status as the authoritative fromStatus
             $fromStatus = $fresh->status;
             $fresh->update(['status' => $newStatus]);
 
@@ -258,16 +244,23 @@ class OrderService
                 'note'        => $note,
             ]);
 
-            // Update the passed-in reference so callers see new status
+            if ($newStatus === Order::STATUS_REFUNDED) {
+                $this->restockOrderItems($fresh);
+            }
+
             $order->status = $newStatus;
         });
 
         event(new OrderStatusUpdated($order->fresh(), $fromStatus, $newStatus));
     }
 
-    // ----------------------------------------------------------------
-    // Transition Validation (private)
-    // ----------------------------------------------------------------
+    /**
+     * @throws InvalidOrderTransitionException
+     */
+    public function requestReturn(Order $order, ?string $note = null): void
+    {
+        $this->updateStatus($order, Order::STATUS_RETURN_REQUESTED, $note);
+    }
 
     /**
      * @throws InvalidOrderTransitionException
@@ -280,8 +273,21 @@ class OrderService
             throw new InvalidOrderTransitionException($order->status, $newStatus);
         }
 
-        if (!in_array($newStatus, $allowed, true)) {
+        if (! in_array($newStatus, $allowed, true)) {
             throw new InvalidOrderTransitionException($order->status, $newStatus);
+        }
+    }
+
+    private function restockOrderItems(Order $order): void
+    {
+        foreach ($order->orderItems as $item) {
+            if ($item->variant_id) {
+                $this->inventoryService->adjustStock(
+                    $item->variant_id,
+                    $item->quantity,
+                    'Refund restock for order #'.$order->id
+                );
+            }
         }
     }
 }

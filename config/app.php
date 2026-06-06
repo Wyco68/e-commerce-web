@@ -145,4 +145,42 @@ return [
 
     'demo_session_lifetime' => (int) env('DEMO_SESSION_LIFETIME', 30),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Demo admin password (initial seed only)
+    |--------------------------------------------------------------------------
+    |
+    | Used only when creating the demo admin user for the first time. Existing
+    | admin passwords are never overwritten on subsequent seeds.
+    |
+    */
+
+    'demo_admin_password' => env('DEMO_ADMIN_PASSWORD'),
+
+    'demo_user_password' => env('DEMO_USER_PASSWORD'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Render / platform detection
+    |--------------------------------------------------------------------------
+    */
+
+    'render' => (bool) env('RENDER', false),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Trusted reverse proxies (comma-separated IPs/CIDRs, or "*")
+    |--------------------------------------------------------------------------
+    */
+
+    'trusted_proxies' => env('TRUSTED_PROXIES'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Force insecure session cookies (local HTTP only)
+    |--------------------------------------------------------------------------
+    */
+
+    'force_insecure_cookies' => (bool) env('APP_FORCE_INSECURE_COOKIES', false),
+
 ];

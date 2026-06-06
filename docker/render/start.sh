@@ -42,7 +42,7 @@ if [ "${DB_CONNECTION:-}" = "sqlite" ]; then
     chmod 664 "$DB_FILE" 2>/dev/null || true
 fi
 
-php artisan storage:link --force 2>/dev/null || true
+php artisan storage:link --force --no-interaction
 
 # Avoid stale cached config from a previous deploy (common 500 cause when APP_URL was unset)
 php artisan optimize:clear --no-interaction 2>/dev/null || true

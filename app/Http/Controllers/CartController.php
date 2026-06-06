@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Rules\ActiveProductVariant;
 use App\Services\CartService;
 use Illuminate\Http\Request;
 
 class CartController extends Controller
 {
-    public function __construct(private readonly CartService $cartService)
-    {}
+    public function __construct(private readonly CartService $cartService) {}
 
     public function index(Request $request)
     {
@@ -21,12 +21,21 @@ class CartController extends Controller
     public function add(Request $request)
     {
         $request->validate([
-            'variant_id' => ['required', 'integer', 'exists:product_variants,id'],
-            'quantity' => ['required', 'integer', 'min:1'],
+            'variant_id' => ['required', 'integer', 'exists:product_variants,id', new ActiveProductVariant],
+            'quantity' => ['required', 'integer', 'min:1', 'max:999'],
         ]);
 
         $cart = $this->cartService->getOrCreateCart($request->user());
-        $this->cartService->addItem($cart, $request->integer('variant_id'), $request->integer('quantity'));
+
+        try {
+            $this->cartService->addItem(
+                $cart,
+                $request->integer('variant_id'),
+                $request->integer('quantity'),
+            );
+        } catch (\RuntimeException $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
 
         return redirect()->route('cart.index')->with('success', 'Item added to cart.');
     }
@@ -34,12 +43,21 @@ class CartController extends Controller
     public function update(Request $request)
     {
         $request->validate([
-            'variant_id' => ['required', 'integer', 'exists:product_variants,id'],
-            'quantity' => ['required', 'integer', 'min:1'],
+            'variant_id' => ['required', 'integer', 'exists:product_variants,id', new ActiveProductVariant],
+            'quantity' => ['required', 'integer', 'min:1', 'max:999'],
         ]);
 
         $cart = $this->cartService->getOrCreateCart($request->user());
-        $this->cartService->updateQuantity($cart, $request->integer('variant_id'), $request->integer('quantity'));
+
+        try {
+            $this->cartService->updateQuantity(
+                $cart,
+                $request->integer('variant_id'),
+                $request->integer('quantity'),
+            );
+        } catch (\RuntimeException $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
 
         return redirect()->route('cart.index');
     }

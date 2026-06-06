@@ -42,31 +42,51 @@ class OrderController extends Controller
 
     public function downloadProof(Payment $payment): StreamedResponse
     {
-        if (!$payment->proof_path || !Storage::disk('private')->exists($payment->proof_path)) {
+        if (! $payment->proof_path || ! Storage::disk('private')->exists($payment->proof_path)) {
             abort(404);
         }
 
         return Storage::disk('private')->response($payment->proof_path);
     }
 
-    public function processPayment(Order $order)
+    public function processPayment(Request $request, Order $order)
     {
         if ($order->status !== Order::STATUS_PENDING_PAYMENT) {
-            if (request()->expectsJson()) {
+            if ($request->expectsJson()) {
                 return response()->json(['error' => 'Only orders awaiting payment can be marked as paid.'], 400);
             }
+
             return redirect()->back()
                 ->with('error', 'Only orders awaiting payment can be marked as paid.');
         }
 
-        $this->orderService->processPayment($order, $this->paymentService);
+        $request->validate([
+            'admin_note' => ['nullable', 'string', 'max:500'],
+        ]);
 
-        if (request()->expectsJson()) {
+        try {
+            $this->orderService->processPayment(
+                $order,
+                $this->paymentService,
+                $request->input('admin_note'),
+            );
+        } catch (\RuntimeException $e) {
+            if ($request->expectsJson()) {
+                return response()->json(['error' => $e->getMessage()], 422);
+            }
+
+            return redirect()->back()->with('error', $e->getMessage());
+        }
+
+        $order->refresh();
+
+        if ($request->expectsJson()) {
             return response()->json([
                 'success' => 'Order marked as paid.',
-                'status' => $order->status
+                'status' => $order->status,
             ]);
         }
+
         return redirect()->back()->with('success', 'Order marked as paid.');
     }
 
@@ -89,18 +109,17 @@ class OrderController extends Controller
         $allowedStatuses = [
             Order::STATUS_PENDING,
             Order::STATUS_PENDING_PAYMENT,
-            Order::STATUS_PAID,
             Order::STATUS_PROCESSING,
             Order::STATUS_SHIPPED,
             Order::STATUS_COMPLETED,
             Order::STATUS_CANCELLED,
             Order::STATUS_REFUNDED,
-            'return_requested',
-            'returned',
+            Order::STATUS_RETURN_REQUESTED,
+            Order::STATUS_RETURNED,
         ];
 
         $request->validate([
-            'status' => ['required', 'string', 'in:' . implode(',', $allowedStatuses)],
+            'status' => ['required', 'string', 'in:'.implode(',', $allowedStatuses)],
             'note'   => ['nullable', 'string', 'max:500'],
         ]);
 
@@ -114,15 +133,17 @@ class OrderController extends Controller
             if ($request->expectsJson()) {
                 return response()->json(['error' => $e->getMessage()], 400);
             }
+
             return redirect()->back()->with('error', $e->getMessage());
         }
 
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => 'Order status updated.',
-                'status' => $order->status
+                'status' => $order->fresh()->status,
             ]);
         }
+
         return redirect()->back()->with('success', 'Order status updated.');
     }
 }

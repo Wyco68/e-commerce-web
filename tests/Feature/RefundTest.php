@@ -60,6 +60,8 @@ class RefundTest extends TestCase
             'user_id'  => $user->id,
             'status'   => RefundRequest::STATUS_PENDING,
         ]);
+
+        $this->assertEquals(Order::STATUS_RETURN_REQUESTED, $order->fresh()->status);
     }
 
     public function test_user_cannot_request_refund_on_pending_order(): void
@@ -107,9 +109,10 @@ class RefundTest extends TestCase
 
     public function test_admin_can_approve_refund_request(): void
     {
-        $admin  = User::factory()->create(['role' => 'admin']);
-        $user   = User::factory()->create(['role' => 'user']);
+        $admin  = User::factory()->admin()->create();
+        $user   = User::factory()->create();
         $order  = $this->createDeliveredOrder($user);
+        $order->update(['status' => Order::STATUS_RETURN_REQUESTED]);
 
         $refund = RefundRequest::create([
             'order_id' => $order->id,
@@ -134,9 +137,10 @@ class RefundTest extends TestCase
 
     public function test_admin_can_reject_refund_request(): void
     {
-        $admin  = User::factory()->create(['role' => 'admin']);
-        $user   = User::factory()->create(['role' => 'user']);
+        $admin  = User::factory()->admin()->create();
+        $user   = User::factory()->create();
         $order  = $this->createDeliveredOrder($user);
+        $order->update(['status' => Order::STATUS_RETURN_REQUESTED]);
 
         $refund = RefundRequest::create([
             'order_id' => $order->id,

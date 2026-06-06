@@ -90,13 +90,37 @@ class AdminFeatureTest extends TestCase
     public function test_admin_can_update_order_status()
     {
         $admin = User::factory()->admin()->create();
+        $order = Order::factory()->create(['status' => Order::STATUS_PAID]);
+
+        $this->actingAs($admin)->patch(route('admin.orders.updateStatus', $order), [
+            'status' => Order::STATUS_SHIPPED,
+        ])->assertRedirect();
+
+        $this->assertEquals(Order::STATUS_SHIPPED, $order->fresh()->status);
+    }
+
+    public function test_admin_cannot_mark_order_paid_via_status_update()
+    {
+        $admin = User::factory()->admin()->create();
         $order = Order::factory()->create(['status' => Order::STATUS_PENDING]);
 
         $this->actingAs($admin)->patch(route('admin.orders.updateStatus', $order), [
             'status' => Order::STATUS_PAID,
         ])->assertRedirect();
 
-        $this->assertEquals(Order::STATUS_PAID, $order->fresh()->status);
+        $this->assertEquals(Order::STATUS_PENDING, $order->fresh()->status);
+    }
+
+    public function test_admin_cannot_mark_order_paid_without_proof_or_note()
+    {
+        $admin = User::factory()->admin()->create();
+        $order = Order::factory()->create(['status' => Order::STATUS_PENDING_PAYMENT]);
+        Payment::factory()->create(['order_id' => $order->id, 'proof_path' => null]);
+
+        $this->actingAs($admin)->postJson(route('admin.orders.processPayment', $order), [])
+            ->assertStatus(422);
+
+        $this->assertEquals(Order::STATUS_PENDING_PAYMENT, $order->fresh()->status);
     }
 
     // 3. Payment Proof Display
@@ -134,7 +158,8 @@ class AdminFeatureTest extends TestCase
 
         Payment::factory()->create([
             'order_id' => $order->id,
-            'status' => 'pending'
+            'status' => 'pending',
+            'proof_path' => 'payment-proofs/test-proof.jpg',
         ]);
 
         $this->actingAs($admin)->post(route('admin.orders.processPayment', $order))

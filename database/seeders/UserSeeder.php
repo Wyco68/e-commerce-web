@@ -4,36 +4,57 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        User::updateOrCreate(
+        $this->seedAdmin();
+        $this->seedDemoCustomer();
+    }
+
+    private function seedAdmin(): void
+    {
+        $password = config('app.demo_admin_password') ?? Str::password(16);
+
+        $admin = User::firstOrCreate(
             ['email' => 'admin@carpart.test'],
             [
                 'name' => 'Admin User',
-                'email' => 'admin@carpart.test',
-                'password' => Hash::make('password'),
-                'role' => 'admin',
-                'is_active' => true,
-                'email_verified_at' => now(),
+                'password' => $password,
+                'phone_num' => '+10000000001',
+                'address' => 'Admin Office',
             ]
         );
 
-        User::updateOrCreate(
+        $admin->forceFill([
+            'role' => 'admin',
+            'is_active' => true,
+            'email_verified_at' => $admin->email_verified_at ?? now(),
+        ])->save();
+    }
+
+    private function seedDemoCustomer(): void
+    {
+        $password = config('app.demo_user_password')
+            ?? config('app.demo_admin_password')
+            ?? Str::password(16);
+
+        $user = User::firstOrCreate(
             ['email' => 'user@carpart.test'],
             [
                 'name' => 'Test Customer',
-                'email' => 'user@carpart.test',
-                'password' => Hash::make('password'),
-                'role' => 'user',
-                'is_active' => true,
+                'password' => $password,
                 'phone_num' => '+1234567890',
                 'address' => '123 Main Street, Test City',
-                'email_verified_at' => now(),
             ]
         );
+
+        $user->forceFill([
+            'role' => 'user',
+            'is_active' => true,
+            'email_verified_at' => $user->email_verified_at ?? now(),
+        ])->save();
     }
 }

@@ -106,4 +106,15 @@ class SecureUploadService
             'image/gif',
         ];
     }
+
+    /** @return list<string> */
+    public static function paymentProofMimes(): array
+    {
+        return [
+            'image/jpeg',
+            'image/png',
+            'image/webp',
+            'image/gif',
+        ];
+    }
 }

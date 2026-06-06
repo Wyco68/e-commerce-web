@@ -5,25 +5,25 @@ namespace App\Http\Controllers;
 use App\Events\RefundRequested;
 use App\Models\Order;
 use App\Models\RefundRequest;
+use App\Services\OrderService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class RefundController extends Controller
 {
-    /**
-     * User submits a refund request for a delivered/completed order.
-     */
+    public function __construct(
+        private readonly OrderService $orderService,
+    ) {}
+
     public function store(Request $request, Order $order)
     {
         $this->authorize('view', $order);
 
-        // Only refundable orders (completed/delivered) can be refunded
-        if (!$order->isRefundable()) {
+        if (! $order->isRefundable()) {
             return redirect()->route('orders.show', $order)
                 ->with('error', 'This order is not eligible for a refund.');
         }
 
-        // Prevent duplicate refund requests
         if ($order->refundRequest()->exists()) {
             return redirect()->route('orders.show', $order)
                 ->with('error', 'A refund request already exists for this order.');
@@ -41,12 +41,14 @@ class RefundController extends Controller
                 'status'   => RefundRequest::STATUS_PENDING,
             ]);
 
-            $order->update(['status' => 'return_requested']);
+            $this->orderService->requestReturn(
+                $order,
+                'Refund requested: '.$request->input('reason'),
+            );
 
             return $refund;
         });
 
-        // Dispatch event after commit
         event(new RefundRequested($refundRequest));
 
         return redirect()->route('orders.show', $order)

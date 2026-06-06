@@ -14,19 +14,37 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->trustProxies(
-            at: '*',
-            headers: Request::HEADER_X_FORWARDED_FOR
-                | Request::HEADER_X_FORWARDED_HOST
-                | Request::HEADER_X_FORWARDED_PORT
-                | Request::HEADER_X_FORWARDED_PROTO,
-        );
+        $trustedProxies = env('TRUSTED_PROXIES');
+
+        if ($trustedProxies === '*') {
+            $middleware->trustProxies(
+                at: '*',
+                headers: Request::HEADER_X_FORWARDED_FOR
+                    | Request::HEADER_X_FORWARDED_HOST
+                    | Request::HEADER_X_FORWARDED_PORT
+                    | Request::HEADER_X_FORWARDED_PROTO,
+            );
+        } elseif (is_string($trustedProxies) && $trustedProxies !== '') {
+            $middleware->trustProxies(
+                at: array_map('trim', explode(',', $trustedProxies)),
+                headers: Request::HEADER_X_FORWARDED_FOR
+                    | Request::HEADER_X_FORWARDED_HOST
+                    | Request::HEADER_X_FORWARDED_PORT
+                    | Request::HEADER_X_FORWARDED_PROTO,
+            );
+        }
 
         $middleware->prepend(\App\Http\Middleware\TrustForwardedProto::class);
+        $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
 
         $middleware->alias([
             'is_admin' => \App\Http\Middleware\IsAdmin::class,
             'redirect_admin' => \App\Http\Middleware\RedirectAdmin::class,
+            'active_user' => \App\Http\Middleware\EnsureUserIsActive::class,
+        ]);
+
+        $middleware->appendToGroup('web', [
+            \App\Http\Middleware\EnsureUserIsActive::class,
         ]);
     })
     ->withSchedule(function (Schedule $schedule): void {

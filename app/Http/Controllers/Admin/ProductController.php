@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Models\Category;
 use App\Models\ProductVariant;
 use App\Models\Inventory;
+use App\Services\SecureUploadService;
 use App\Support\StoreCache;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
@@ -14,6 +15,10 @@ use Illuminate\Http\Request;
 class ProductController extends Controller
 {
     use AuthorizesRequests;
+
+    public function __construct(
+        private readonly SecureUploadService $secureUpload,
+    ) {}
 
     public function index(Request $request)
     {
@@ -36,6 +41,7 @@ class ProductController extends Controller
         $this->authorize('create', Product::class);
 
         $categories = Category::where('is_active', true)->get();
+
         return view('admin.products.create', compact('categories'));
     }
 
@@ -54,9 +60,16 @@ class ProductController extends Controller
         ]);
 
         $data = $request->only('name', 'description', 'base_price', 'category_id');
+
         if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('products', config('filesystems.product_disk', 'public'));
-            $data['images'] = [$path];
+            $data['images'] = [
+                $this->secureUpload->storeImage(
+                    $request->file('image'),
+                    'products',
+                    SecureUploadService::categoryIconMimes(),
+                    2048,
+                ),
+            ];
         }
 
         $product = Product::create($data);
@@ -102,9 +115,20 @@ class ProductController extends Controller
         ]);
 
         $data = $request->only('name', 'description', 'base_price', 'category_id', 'is_active');
+
         if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('products', config('filesystems.product_disk', 'public'));
-            $data['images'] = [$path];
+            $oldImage = $product->images[0] ?? null;
+
+            $data['images'] = [
+                $this->secureUpload->storeImage(
+                    $request->file('image'),
+                    'products',
+                    SecureUploadService::categoryIconMimes(),
+                    2048,
+                ),
+            ];
+
+            $this->secureUpload->deleteIfExists($oldImage);
         }
 
         $product->update($data);
@@ -118,7 +142,7 @@ class ProductController extends Controller
     {
         $this->authorize('delete', $product);
 
-        $product->delete(); // soft delete
+        $product->delete();
 
         StoreCache::forgetProducts();
 

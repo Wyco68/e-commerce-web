@@ -86,12 +86,9 @@ class OrderTest extends TestCase
 
         $cartService = app(CartService::class);
         $cart = $cartService->getOrCreateCart($user);
-        $cartService->addItem($cart, $data['variant']->id, 5);
 
         $this->expectException(\RuntimeException::class);
-
-        $orderService = app(OrderService::class);
-        $orderService->createFromCart($user, $cart, $this->paymentMethodId());
+        $cartService->addItem($cart, $data['variant']->id, 5);
     }
 
     public function test_order_creation_clears_cart(): void

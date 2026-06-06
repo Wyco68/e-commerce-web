@@ -49,13 +49,28 @@ class OrderStateMachineTest extends TestCase
         $this->assertEquals(Order::STATUS_PENDING, $order->fresh()->status);
     }
 
-    public function test_valid_transition_pending_to_paid(): void
+    public function test_valid_transition_pending_to_paid_requires_payment_verification(): void
     {
         $user  = User::factory()->create();
         $order = $this->createOrderForUser($user);
 
         app(OrderService::class)->updateStatus($order, Order::STATUS_PENDING);
+
+        $this->expectException(InvalidOrderTransitionException::class);
+
         app(OrderService::class)->updateStatus($order->fresh(), Order::STATUS_PAID);
+    }
+
+    public function test_mark_as_paid_deducts_stock(): void
+    {
+        $user  = User::factory()->create();
+        $order = $this->createOrderForUser($user);
+        $payment = \App\Models\Payment::factory()->create([
+            'order_id' => $order->id,
+            'status' => 'pending',
+        ]);
+
+        app(\App\Services\PaymentService::class)->verifyPayment($payment);
 
         $this->assertEquals(Order::STATUS_PAID, $order->fresh()->status);
     }
@@ -65,8 +80,11 @@ class OrderStateMachineTest extends TestCase
         $user  = User::factory()->create();
         $order = $this->createOrderForUser($user);
 
-        app(OrderService::class)->updateStatus($order, Order::STATUS_PENDING);
-        app(OrderService::class)->updateStatus($order->fresh(), Order::STATUS_PAID);
+        $payment = \App\Models\Payment::factory()->create([
+            'order_id' => $order->id,
+            'status' => 'pending',
+        ]);
+        app(\App\Services\PaymentService::class)->verifyPayment($payment);
         app(OrderService::class)->updateStatus($order->fresh(), Order::STATUS_SHIPPED);
 
         $this->assertEquals(Order::STATUS_SHIPPED, $order->fresh()->status);
@@ -143,8 +161,11 @@ class OrderStateMachineTest extends TestCase
         $order = $this->createOrderForUser($user);
 
         // Move to paid/processing state
-        app(OrderService::class)->updateStatus($order, Order::STATUS_PENDING);
-        app(OrderService::class)->updateStatus($order->fresh(), Order::STATUS_PAID);
+        $payment = \App\Models\Payment::factory()->create([
+            'order_id' => $order->id,
+            'status' => 'pending',
+        ]);
+        app(\App\Services\PaymentService::class)->verifyPayment($payment);
         app(OrderService::class)->updateStatus($order->fresh(), Order::STATUS_PROCESSING);
 
         // Should be cancellable from processing

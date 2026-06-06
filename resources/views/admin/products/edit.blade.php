@@ -137,7 +137,7 @@
 
                 <!-- Media Upload Zone -->
                 <x-admin.card title="Product Media">
-                    <div class="space-y-4" x-data="{ preview: '{{ $product->image_url ?? '' }}' }">
+                    <div class="space-y-4" x-data="{ preview: @js($product->image_url) }">
                         <!-- Image Preview Grid -->
                         <div class="h-44 border-2 border-dashed border-slate-200 hover:border-sky-400 transition-colors rounded-2xl flex items-center justify-center p-3 relative bg-slate-50 overflow-hidden group">
                             <template x-if="preview">
