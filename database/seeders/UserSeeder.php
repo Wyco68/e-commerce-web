@@ -4,10 +4,16 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Str;
 
 class UserSeeder extends Seeder
 {
+    /** Matches README demo credentials. */
+    public const DEMO_ADMIN_EMAIL = 'admin@carpart.test';
+
+    public const DEMO_USER_EMAIL = 'user@carpart.test';
+
+    public const DEMO_PASSWORD = 'password';
+
     public function run(): void
     {
         $this->seedAdmin();
@@ -16,17 +22,16 @@ class UserSeeder extends Seeder
 
     private function seedAdmin(): void
     {
-        $password = config('app.demo_admin_password') ?? Str::password(16);
+        $data = [
+            'name' => 'Admin User',
+            'password' => $this->passwordForDemoAccounts(),
+            'phone_num' => '+10000000001',
+            'address' => 'Admin Office',
+        ];
 
-        $admin = User::firstOrCreate(
-            ['email' => 'admin@carpart.test'],
-            [
-                'name' => 'Admin User',
-                'password' => $password,
-                'phone_num' => '+10000000001',
-                'address' => 'Admin Office',
-            ]
-        );
+        $admin = $this->usesDemoReset()
+            ? User::updateOrCreate(['email' => self::DEMO_ADMIN_EMAIL], $data)
+            : User::firstOrCreate(['email' => self::DEMO_ADMIN_EMAIL], $data);
 
         $admin->forceFill([
             'role' => 'admin',
@@ -37,24 +42,35 @@ class UserSeeder extends Seeder
 
     private function seedDemoCustomer(): void
     {
-        $password = config('app.demo_user_password')
-            ?? config('app.demo_admin_password')
-            ?? Str::password(16);
+        $data = [
+            'name' => 'Test Customer',
+            'password' => $this->passwordForDemoAccounts(),
+            'phone_num' => '+1234567890',
+            'address' => '123 Main Street, Test City',
+        ];
 
-        $user = User::firstOrCreate(
-            ['email' => 'user@carpart.test'],
-            [
-                'name' => 'Test Customer',
-                'password' => $password,
-                'phone_num' => '+1234567890',
-                'address' => '123 Main Street, Test City',
-            ]
-        );
+        $user = $this->usesDemoReset()
+            ? User::updateOrCreate(['email' => self::DEMO_USER_EMAIL], $data)
+            : User::firstOrCreate(['email' => self::DEMO_USER_EMAIL], $data);
 
         $user->forceFill([
             'role' => 'user',
             'is_active' => true,
             'email_verified_at' => $user->email_verified_at ?? now(),
         ])->save();
+    }
+
+    private function usesDemoReset(): bool
+    {
+        return (bool) config('app.demo_mode');
+    }
+
+    private function passwordForDemoAccounts(): string
+    {
+        if ($this->usesDemoReset()) {
+            return self::DEMO_PASSWORD;
+        }
+
+        return config('app.demo_admin_password') ?? self::DEMO_PASSWORD;
     }
 }

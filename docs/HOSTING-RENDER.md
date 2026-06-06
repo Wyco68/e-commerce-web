@@ -9,24 +9,28 @@ Portfolio demo: Docker Web Service, SQLite, `render.yaml` Blueprint. **Setup ste
 | `render.yaml` | Blueprint |
 | `.env.render.example` | Env template |
 | `Dockerfile` | Build (Composer + Vite) |
-| `docker/render/start.sh` | Migrate, seed, serve |
+| `docker/render/start.sh` | Migrate fresh, seed, serve |
 
 ## Demo logins
 
-Demo users are created on **first seed only**. Passwords are **not** reset on subsequent deploys.
+Same as [README.md](../README.md). On each deploy/restart with `APP_DEMO_MODE=true`, the database is reset and these accounts are recreated:
 
 | Role | Email | Password |
 |------|--------|----------|
-| Admin | `admin@carpart.test` | Set `DEMO_ADMIN_PASSWORD` in Render Environment |
-| Customer | `user@carpart.test` | Set `DEMO_USER_PASSWORD` (optional; falls back to admin password) |
-
-**Security:** Use a strong, unique `DEMO_ADMIN_PASSWORD` in the Render dashboard. Do not commit it to git or publish it in public docs.
+| Admin | `admin@carpart.test` | `password` |
+| Customer | `user@carpart.test` | `password` |
 
 ## Free tier
 
 - Sleeps after ~15 min idle; cold start ~30–60s
-- SQLite + seed on each container start when `APP_DEMO_MODE=true` (catalog reset; user passwords preserved after first create)
+- SQLite is wiped and re-seeded on every container start when `APP_DEMO_MODE=true`
 - Uploads on local disk may not survive redeploy
+
+## Manual reset (Render Shell)
+
+```bash
+php artisan migrate:fresh --force --seeder=RenderDemoSeeder
+```
 
 ## Troubleshooting
 
@@ -36,6 +40,7 @@ Demo users are created on **first seed only**. Passwords are **not** reset on su
 | 500 everywhere | `APP_KEY=base64:…`, correct `APP_URL`, redeploy |
 | 419 on login | Ensure `TRUSTED_PROXIES=*`, `SESSION_SECURE_COOKIE=true`, `SESSION_DRIVER=cookie`, clear cookies |
 | No notifications | Set all `PUSHER_*` + `VITE_PUSHER_*`, redeploy (Vite bakes at build) |
-| No products | Redeploy or `php artisan db:seed --class=RenderDemoSeeder --force` in Shell |
+| No products | Redeploy (demo mode runs `migrate:fresh --seeder=RenderDemoSeeder` on start) |
+| Wrong login | Use README credentials above; redeploy to reset DB |
 
 See also [UPSTASH-PUSHER.md](./UPSTASH-PUSHER.md) for Redis and Pusher setup.

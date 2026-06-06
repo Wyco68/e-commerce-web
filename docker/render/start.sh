@@ -47,11 +47,12 @@ php artisan storage:link --force --no-interaction
 # Avoid stale cached config from a previous deploy (common 500 cause when APP_URL was unset)
 php artisan optimize:clear --no-interaction 2>/dev/null || true
 
-php artisan migrate --force --no-interaction
-
 if [ "${APP_DEMO_MODE:-false}" = "true" ]; then
-    php artisan db:seed --class=RenderDemoSeeder --force --no-interaction
+    echo "[start] Demo mode — migrate:fresh + RenderDemoSeeder (README demo accounts)."
+    php artisan migrate:fresh --force --no-interaction --seeder=RenderDemoSeeder
     php artisan notifications:prune-read --no-interaction 2>/dev/null || true
+else
+    php artisan migrate --force --no-interaction
 fi
 
 if [ -z "${APP_URL:-}" ] && [ -n "${RENDER_EXTERNAL_URL:-}" ]; then

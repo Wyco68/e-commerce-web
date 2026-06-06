@@ -147,11 +147,11 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Demo admin password (initial seed only)
+    | Demo account passwords (local / non-demo overrides only)
     |--------------------------------------------------------------------------
     |
-    | Used only when creating the demo admin user for the first time. Existing
-    | admin passwords are never overwritten on subsequent seeds.
+    | Render demo mode (APP_DEMO_MODE=true) always uses README credentials:
+    | admin@carpart.test / user@carpart.test — password: password
     |
     */
 
